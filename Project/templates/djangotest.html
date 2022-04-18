@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+    
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+
+<style style="text/css">
+    body {
+        background-color: coral;
+    } 
+    table{
+        font-family: arial, sans-serif;
+        text-align: center;
+    }
+    tr:nth-child(even) {
+        background-color: #f2f2f2;
+    }   
+    tr:nth-child(odd) {
+        background-color:lightblue;
+    }
+    table tr:hover {
+            background-color: #ffff99;
+    }
+    th, td {
+            padding: 1px;
+    }
+    th {
+        background-color: whitesmoke;
+    }
+ 
+</style>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NBAQuery</title>
+</head>
+<center>
+<body>
+    <br>
+    <h1>NBAQuery.com</h1>
+    <p>Press enter to use search bars. Click table headers to sort. </p>
+   
+    <div class="row" style="width: 85%">
+        <div class="col-sm-4">
+            <div class="card" style="width: 25rem;"> 
+                <input id="search-input" class="form-control" type="text" placeholder="Player Search (ex: Lebron)">
+            </div>
+        </div>
+        <div class="col-sm-4">
+            <div class="card" style="width: 25rem;"> 
+                <input id="team-input" class="form-control" type="text" placeholder="Team Search (ex: bos)">
+            </div>
+        </div>
+        <div class="col-sm-4">
+            <div class="card" style="width: 25rem;"> 
+                <input id="points-input" class="form-control" type="text" placeholder="Queries (ex: pts>3000, ts%<.500 or year=2015)">
+            </div>
+        </div>
+    </div>
+
+    <br>
+    <button type="button" id="clear-button" class="btn btn-primary">Reset Queries</button>
+    <br>
+    <div class="row" style="width: 85%">    
+        <div class="card" id="querieslabel" style="width: auto">            
+           <body>Queries: All </body>
+        </div>
+    </div>
+
+    
+
+    <br>
+    <table border="1" id="players" class="hoverTable">
+        <tr>
+            <th onclick="sortColumn('year')">Year</th>
+            <th>Player</th>
+            <th>Pos</th>
+            <th onclick="sortColumn('age')">Age</th>
+            <th>Tm</th>
+            <th onclick="sortColumn('g')">G</th>
+            <th onclick="sortColumn('mpg')">MPG</th>
+            <th onclick="sortColumn('tspercent')">TS%</th>
+            <th onclick="sortColumn('fg')">FG</th>
+            <th onclick="sortColumn('fga')">FGA</th>
+            <th onclick="sortColumn('fgpercent')">FG%</th>
+            <th onclick="sortColumn('threep')">3P</th>
+            <th onclick="sortColumn('threepa')">3PA</th>
+            <th onclick="sortColumn('threeppercent')">3P%</th>
+            <th onclick="sortColumn('twop')">2P</th>
+            <th onclick="sortColumn('twopa')">2PA</th>
+            <th onclick="sortColumn('twoppercent')">2P%</th>
+            <th onclick="sortColumn('efgpercent')">EFG%</th>
+            <th onclick="sortColumn('ft')">FT</th>
+            <th onclick="sortColumn('fta')">FTA</th>
+            <th onclick="sortColumn('ftpercent')">FT%</th>
+            <th onclick="sortColumn('rpg')">RPG</th>
+            <th onclick="sortColumn('reb')">Reb</th>
+            <th onclick="sortColumn('apg')">APG</th>
+            <th onclick="sortColumn('ast')">Ast</th>
+            <th onclick="sortColumn('spg')">SPG</th>
+            <th onclick="sortColumn('stl')">STL</th>
+            <th onclick="sortColumn('bpg')">BPG</th>
+            <th onclick="sortColumn('blk')">Blk</th>
+            <th onclick="sortColumn('topg')">TOPG</th>
+            <th onclick="sortColumn('tov')">TOV</th>
+            <th onclick="sortColumn('ppg')">PPG</th>
+            <th onclick="sortColumn('pts')">Pts</th>
+        </tr>
+        <tbody id="myTable"></tbody>
+    </table>
+
+    <script>
+        var myArray = {{ stats|safe}}
+    
+        buildTable(myArray)
+        filteredData = myArray
+        var temp = []
+        var querrydata = []
+        var querryarr = []
+        querrydata.push(myArray)
+        
+        $('#search-input').on('keypress', function(e){
+            if (e.which == 13){
+                var value = $(this).val()
+                console.log('Value:', value)
+                var data = searchTable(value, filteredData)
+                buildTable(data)
+                querrydata.push(data)
+                querryarr.push(value)
+                buildQueries(querryarr)
+            }
+            
+        })
+
+        $('#team-input').on('keypress', function(g){
+            if (g.which == 13){
+                var value = $(this).val()
+                console.log('Value:', value)
+                var data = searchTeam(value, filteredData)
+                buildTable(data)  
+                querrydata.push(data)  
+                querryarr.push(value)
+                buildQueries(querryarr)
+            }
+            
+        })
+
+        $('#points-input').on('keypress', function(h){
+            if (h.which == 13){
+                var value = $(this).val()
+                console.log('Value:', value)
+                var data = searchPoints(value, filteredData)
+                buildTable(data)  
+                querrydata.push(data)  
+                querryarr.push(value)
+                buildQueries(querryarr)
+            }
+        })
+
+        $('#clear-button').click(function(){
+            undoQuery()
+        })
+
+
+        function undoQuery(){
+            if (querrydata.length > 1){
+                querrydata.pop()
+                filteredData = querrydata[querrydata.length - 1]
+                querryarr.pop()
+                buildQueries(querryarr)
+                buildTable(filteredData)
+            }
+        }
+        
+        function searchPoints(value, data){
+            if (value.includes(" ")){
+                return filteredData
+            }
+            console.log(value)
+            temp = filteredData
+            filteredData = []
+            var Inequality = ''
+            var switcher = ''
+            if (value.includes('<')){
+                values = value.split('<')
+                Inequality = '<'
+                switcher = values[0]
+            }
+            else if (value.includes('>')){
+                values = value.split('>')
+                Inequality = '>'
+                switcher = values[0]
+            }
+            else if (value.includes('=')){
+                values = value.split('=')
+                Inequality = '='
+                switcher = values[0]
+            }
+            searcharr = getAttribute(switcher)
+            switch(Inequality){
+                case '<':
+                    for (var i = 0; i < temp.length; i++){
+                        if (searcharr[i] < values[1]){
+                            filteredData.push(temp[i])
+                        }
+                    }
+                    break;
+                case '>':
+                    for (var i = 0; i < temp.length; i++){
+                        if (searcharr[i] > values[1]){
+                            filteredData.push(temp[i])
+                        }
+                    }
+                    break;
+                case '=':
+                    for (var i = 0; i < temp.length; i++){
+                        if (searcharr[i] == values[1]){
+                            filteredData.push(temp[i])
+                        }
+                    }
+                    break;
+            }
+            return filteredData
+
+        }
+
+        
+        function searchTable(value, data){
+            temp = filteredData
+            filteredData = []
+            var values = value.split(" ")
+            var count = 0
+            for (var i = 0; i < temp.length; i++){
+                var name = temp[i].player.toLowerCase()
+                for (var j = 0; j < values.length; j++){
+                    value = values[j].toLowerCase()
+                    if(name.includes(value)){
+                        count++
+                    }
+                }
+                if (count == values.length){
+                    filteredData.push(temp[i])
+                }
+                count = 0
+            }
+            return filteredData
+          }
+
+        function searchTeam(value, data){
+            temp = filteredData
+            filteredData = []
+            values = value.split(" ")
+        
+            var count = 0
+            for (var i = 0; i < data.length; i++){
+                var year = parseInt(temp[i].year)
+                var team = temp[i].tm.toLowerCase()
+                for (var j = 0; j < values.length; j++){
+                    if ($.isNumeric(values[j])){
+                        if (year == parseInt(values[j])){
+                            count++
+                        }
+                    }
+                    else if (team.includes(values[j].toLowerCase())){
+                        count++
+                    }
+                }
+                if (count == values.length){
+                    filteredData.push(temp[i])
+                }
+                count = 0
+            }
+            return filteredData
+        }
+
+        
+        function buildTable(data){
+            var table = document.getElementById('myTable')
+            table.innerHTML = ``
+            var a = 30
+            if (data.length < 30){
+                a = data.length
+            }
+            for (var i = 0; i < a; i++){
+                var row = `<tr>
+                                <td>${data[i].year}</td>
+                                <td><strong>${data[i].player}</strong></td>
+                                <td>${data[i].pos}</td>
+                                <td>${data[i].age}</td>
+                                <td>${data[i].tm}</td>
+                                <td>${data[i].g}</td>
+                                <td>${parseFloat(data[i].mpg).toFixed(1)}</td>
+                                <td>${parseFloat(data[i].tspercent).toFixed(3)}</td>
+                                <td>${data[i].fg}</td>
+                                <td>${data[i].fga}</td>
+                                <td>${parseFloat(data[i].fgpercent).toFixed(3)}</td>
+                                <td>${data[i].threep}</td>
+                                <td>${data[i].threepa}</td>
+                                <td>${parseFloat(data[i].threeppercent).toFixed(3)}</td>
+                                <td>${data[i].twop}</td>
+                                <td>${data[i].twopa}</td>
+                                <td>${parseFloat(data[i].twoppercent).toFixed(3)}</td>
+                                <td>${parseFloat(data[i].efgpercent).toFixed(3)}</td>
+                                <td>${data[i].ft}</td>
+                                <td>${data[i].fta}</td>
+                                <td>${parseFloat(data[i].ftpercent).toFixed(2)}</td>
+                                <td>${parseFloat(data[i].rpg).toFixed(1)}</td>
+                                <td>${data[i].reb}</td>
+                                <td>${parseFloat(data[i].apg).toFixed(1)}</td>
+                                <td>${data[i].ast}</td>
+                                <td>${parseFloat(data[i].spg).toFixed(1)}</td>
+                                <td>${data[i].stl}</td>
+                                <td>${parseFloat(data[i].bpg).toFixed(1)}</td>
+                                <td>${data[i].blk}</td>
+                                <td>${parseFloat(data[i].topg).toFixed(1)}</td>
+                                <td>${data[i].tov}</td>
+                                <td>${parseFloat(data[i].ppg).toFixed(1)}</td>
+                                <td>${data[i].pts}</td>                    
+                           </tr>`
+                table.innerHTML += row
+    
+            }
+        }
+
+        function buildQueries(data){
+            var div = document.getElementById('querieslabel')
+            div.innerHTML = `Queries: All `
+            for (var i = 0; i < querryarr.length; i++){
+                var label = `<body>-> [${querryarr[i]}] </body>`
+                div.innerHTML += label
+            }
+        
+        }
+
+        var sortDirection = false;
+        function sortColumn(columnName) {
+            var dataType = typeof myArray[0][columnName];
+            sortDirection = !sortDirection;
+            switch(dataType) {
+                case 'number':
+                    sortNumberColumn(sortDirection, columnName);
+                    break;
+            }
+
+            buildTable(filteredData);
+        }
+
+        function sortNumberColumn(sort, columnName) {
+            filteredData = filteredData.sort((p1, p2) => {
+                return sort ? p1[columnName] - p2[columnName] : p2[columnName]
+                - p1[columnName]
+            });
+        }
+       
+        function getAttribute(name){
+            arr = []
+            name = name.toLowerCase()
+            switch (name){
+                case 'pts':
+                    for (var i = 0; i < temp.length; i++){
+                        arr[i] = temp[i].pts    
+                    }
+                    break;
+                case 'year':
+                    for (var i = 0; i < temp.length; i++) {
+                        arr[i] = temp[i].year
+                    }
+                    break;
+                case 'age':
+                    for (var i = 0; i < temp.length; i++) {
+                        arr[i] = temp[i].age
+                    }
+                    break;
+                case 'g':
+                    for (var i = 0; i < temp.length; i++) {
+                        arr[i] = temp[i].g
+                    }
+                    break;
+                case 'mpg':
+                    for (var i = 0; i < temp.length; i++) {
+                        arr[i] = temp[i].mpg
+                    }
+                    break;
+                case 'ts%':
+                    for (var i = 0; i < temp.length; i++) {
+                        arr[i] = temp[i].tspercent
+                    }
+                    break;
+                case 'fg':
+                    for (var i = 0; i < temp.length; i++) {
+                        arr[i] = temp[i].fg
+                    }
+                    break;
+                case 'fga':
+                    for (var i = 0; i < temp.length; i++) {
+                        arr[i] = temp[i].fga
+                    }
+                    break;
+                case 'fg%':
+                    for (var i = 0; i < temp.length; i++) {
+                        arr[i] = temp[i].fgpercent
+                    }
+                    break;
+                case '3p':
+                    for (var i = 0; i < temp.length; i++) {
+                        arr[i] = temp[i].threep
+                    }
+                    break;
+                case '3pa':
+                    for (var i = 0; i < temp.length; i++) {
+                        arr[i] = temp[i].threepa
+                    }
+                    break;
+                case '3p%':
+                    for (var i = 0; i < temp.length; i++) {
+                        arr[i] = temp[i].threeppercent
+                    }
+                    break;
+                case '2p':
+                    for (var i = 0; i < temp.length; i++) {
+                        arr[i] = temp[i].twop
+                    }
+                    break;
+                case '2pa':
+                    for (var i = 0; i < temp.length; i++) {
+                        arr[i] = temp[i].twopa
+                    }
+                    break;
+                case '2p%':
+                    for (var i = 0; i < temp.length; i++) {
+                        arr[i] = temp[i].twoppercent
+                    }
+                    break;
+                case 'efg%':
+                    for (var i = 0; i < temp.length; i++) {
+                        arr[i] = temp[i].efgpercent
+                    }
+                    break;
+                case 'ft':
+                    for (var i = 0; i < temp.length; i++) {
+                        arr[i] = temp[i].ft
+                    }
+                    break;
+                case 'fta':
+                    for (var i = 0; i < temp.length; i++) {
+                        arr[i] = temp[i].fta
+                    }
+                    break;
+                case 'ft%':
+                    for (var i = 0; i < temp.length; i++) {
+                        arr[i] = temp[i].ftpercent
+                    }
+                    break;
+                case 'rpg':
+                    for (var i = 0; i < temp.length; i++) {
+                        arr[i] = temp[i].rpg
+                    }
+                    break;
+                case 'reb':
+                    for (var i = 0; i < temp.length; i++) {
+                        arr[i] = temp[i].reb
+                    }
+                    break;
+                case 'apg':
+                    for (var i = 0; i < temp.length; i++) {
+                        arr[i] = temp[i].apg
+                    }
+                    break;
+                case 'ast':
+                    for (var i = 0; i < temp.length; i++) {
+                        arr[i] = temp[i].ast
+                    }
+                    break;
+                case 'spg':
+                    for (var i = 0; i < temp.length; i++) {
+                        arr[i] = temp[i].spg
+                    }
+                    break;
+                case 'stl':
+                    for (var i = 0; i < temp.length; i++) {
+                        arr[i] = temp[i].stl
+                    }
+                    break;
+                case 'bpg':
+                    for (var i = 0; i < temp.length; i++) {
+                        arr[i] = temp[i].bpg
+                    }
+                    break;
+                case 'blk':
+                    for (var i = 0; i < temp.length; i++) {
+                        arr[i] = temp[i].blk
+                    }
+                    break;
+                case 'topg':
+                    for (var i = 0; i < temp.length; i++) {
+                        arr[i] = temp[i].topg
+                    }
+                    break;
+                case 'tov':
+                    for (var i = 0; i < temp.length; i++) {
+                        arr[i] = temp[i].tov
+                    }
+                    break;
+                case 'ppg':
+                    for (var i = 0; i < temp.length; i++) {
+                        arr[i] = temp[i].ppg
+                    }
+                    break;
+            }
+            return arr
+        }
+    </script>
+
+    
+</body>
+</center>
+
+</html>
